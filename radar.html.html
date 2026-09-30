@@ -1,0 +1,493 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mantis — Radar de Oportunidad Digital</title>
+<style>
+  :root{
+    --bg:#0d0e14;
+    --bg-warm:#15171f;
+    --panel:#1b1e29;
+    --gold:#d4af37;
+    --gold-light:#f4dd8c;
+    --gold-dark:#96771c;
+    --text:#eee9db;
+    --muted:#8a8672;
+    --border:rgba(212,175,55,0.25);
+    --dim:#3a3d47;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:radial-gradient(ellipse at top, var(--bg-warm) 0%, var(--bg) 65%);
+    font-family:'Georgia','Times New Roman',serif;
+    color:var(--text);
+    min-height:100vh;
+    padding:28px 16px 60px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+
+  .brand-header{ text-align:center; margin-bottom:18px; }
+  .logo-word{ font-size:18px; letter-spacing:6px; color:var(--gold-light); margin-top:10px; }
+  .logo-tagline{ font-size:9px; letter-spacing:3px; color:var(--muted); text-transform:uppercase; margin-top:3px; }
+
+  .intro{ max-width:460px; text-align:center; margin-bottom:22px; }
+  .intro h1{ font-size:1.4rem; font-weight:400; line-height:1.35; }
+
+  .card{
+    width:100%; max-width:460px;
+    background:var(--panel);
+    border-radius:14px;
+    padding:24px 22px;
+    border:1px solid var(--border);
+  }
+
+  .choices-scroll{
+    max-height:340px;
+    overflow-y:auto;
+    padding-right:4px;
+    margin-bottom:10px;
+  }
+  .choices-scroll::-webkit-scrollbar{ width:5px; }
+  .choices-scroll::-webkit-scrollbar-thumb{ background:rgba(212,175,55,0.3); border-radius:4px; }
+
+  .giro-group{ margin-bottom:14px; }
+  .giro-group:last-child{ margin-bottom:0; }
+  .giro-group-label{
+    font-family:-apple-system,sans-serif; font-size:10px; letter-spacing:1.5px;
+    text-transform:uppercase; color:var(--muted); margin-bottom:8px; padding-left:2px;
+  }
+  .choices{ display:flex; flex-wrap:wrap; gap:8px; }
+  .choice-btn{
+    flex:1 1 auto; min-width:130px;
+    padding:11px 10px;
+    border-radius:8px;
+    border:1px solid rgba(212,175,55,0.25);
+    background:transparent;
+    color:#dcd8c8;
+    font-size:0.82rem;
+    cursor:pointer;
+    text-align:center;
+    font-family:-apple-system,sans-serif;
+    transition:background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .choice-btn:hover{ border-color:var(--gold); }
+  .choice-btn.active{
+    background:linear-gradient(135deg, var(--gold-dark), var(--gold));
+    border-color:var(--gold);
+    color:#171a10;
+    font-weight:600;
+  }
+
+  .results{ display:none; margin-top:26px; animation:fadeUp 0.4s ease-out; }
+  .results.show{ display:block; }
+  @keyframes fadeUp{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+
+  .section-label{
+    color:var(--gold); font-size:11px; letter-spacing:2px; text-transform:uppercase;
+    margin-bottom:14px; font-family:-apple-system,sans-serif; text-align:center;
+  }
+
+  .radar-wrap{ display:flex; justify-content:center; margin-bottom:12px; position:relative; }
+  .radar-scan-label{
+    position:absolute; top:-6px; left:50%; transform:translateX(-50%);
+    font-family:-apple-system,sans-serif; font-size:0.65rem; letter-spacing:1.5px;
+    color:var(--gold-light); text-transform:uppercase; opacity:0;
+  }
+  .radar-scan-label.show{ animation:blinkFade 0.4s ease-in forwards; }
+  @keyframes blinkFade{ from{opacity:0;} to{opacity:1;} }
+
+  svg#radarSvg{ display:block; filter:drop-shadow(0 0 14px rgba(212,175,55,0.15)); }
+
+  .ring{ fill:none; stroke:rgba(212,175,55,0.22); stroke-width:0.5; }
+  .crosshair{ stroke:rgba(212,175,55,0.15); stroke-width:0.5; }
+
+  .sweep-group{ transform-origin:100px 100px; animation:radarSpin 3.2s linear infinite; }
+  @keyframes radarSpin{ from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
+
+  .biz-dot{ transition:opacity 0.3s ease; }
+  .biz-dot.gold{ fill:var(--gold-light); filter:drop-shadow(0 0 4px rgba(244,221,140,0.9)); }
+  .biz-dot.empty{ fill:none; stroke:var(--dim); stroke-width:1.2; }
+
+  .pulse-ring{
+    fill:none; stroke:var(--gold-light); stroke-width:1; opacity:0;
+  }
+  .pulse-ring.animate{ animation:pulseOut 0.7s ease-out forwards; }
+  @keyframes pulseOut{
+    0%{ opacity:0.9; r:3; }
+    100%{ opacity:0; r:11; }
+  }
+
+  .legend{
+    display:flex; justify-content:center; gap:20px; margin-top:6px;
+    font-family:-apple-system,sans-serif; font-size:0.72rem; color:var(--muted);
+  }
+  .legend-item{ display:flex; align-items:center; gap:6px; }
+  .legend-dot{ width:10px; height:10px; border-radius:50%; }
+  .legend-dot.gold{ background:var(--gold); box-shadow:0 0 6px rgba(212,175,55,0.7); }
+  .legend-dot.empty{ border:1.5px solid var(--dim); }
+
+  .map-caption{
+    text-align:center; font-family:-apple-system,sans-serif; font-size:0.88rem;
+    color:var(--text); margin-top:16px; line-height:1.5;
+  }
+  .map-caption strong{ color:var(--gold-light); font-size:1.1rem; }
+
+  .stat-row{ display:flex; gap:12px; margin-top:18px; }
+  .stat-box{
+    flex:1; background:var(--bg); border-left:3px solid var(--gold);
+    border-radius:8px; padding:16px; text-align:center;
+  }
+  .stat-label{
+    font-family:-apple-system,sans-serif; font-size:0.68rem; color:var(--muted);
+    text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;
+  }
+  .stat-value{ font-size:1.35rem; color:var(--gold-light); font-weight:bold; }
+
+  .stat-note{
+    font-family:-apple-system,sans-serif; font-size:0.7rem; color:var(--muted);
+    text-align:center; margin-top:10px; line-height:1.5;
+  }
+
+  .urgency{
+    background:rgba(212,175,55,0.08);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:16px 18px;
+    margin-top:18px;
+    font-family:-apple-system,sans-serif;
+    font-size:0.85rem;
+    line-height:1.6;
+    color:var(--text);
+    text-align:center;
+  }
+  .urgency strong{ color:var(--gold-light); }
+
+  .disclaimer{
+    font-family:-apple-system,sans-serif; font-size:0.68rem; color:#6b6852;
+    text-align:center; margin-top:16px; line-height:1.5; font-style:italic;
+  }
+</style>
+</head>
+<body>
+
+  <div class="brand-header">
+    <img src="data:image/png;base64,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" alt="Mantis" width="80" height="72" style="display:block;margin:0 auto;">
+    <div class="logo-word">MANTIS</div>
+    <div class="logo-tagline">Digital Marketing Agency</div>
+  </div>
+
+  <div class="intro">
+    <h1>Radar de Oportunidad Digital</h1>
+  </div>
+
+  <div class="card">
+    <div class="choices-scroll">
+      <div id="giroChoices">
+
+        <div class="giro-group">
+          <div class="giro-group-label">Alimentos y bebidas</div>
+          <div class="choices">
+            <button class="choice-btn" data-value="restaurante">Restaurante / Café</button>
+            <button class="choice-btn" data-value="pasteleria">Pastelería / Panadería</button>
+          </div>
+        </div>
+
+        <div class="giro-group">
+          <div class="giro-group-label">Salud y bienestar</div>
+          <div class="choices">
+            <button class="choice-btn" data-value="clinica">Clínica / Consultorio</button>
+            <button class="choice-btn" data-value="dentista">Dentista</button>
+            <button class="choice-btn" data-value="veterinaria">Veterinaria</button>
+            <button class="choice-btn" data-value="farmacia">Farmacia</button>
+            <button class="choice-btn" data-value="gimnasio">Gimnasio / Fitness</button>
+            <button class="choice-btn" data-value="estetica">Estética / Spa</button>
+          </div>
+        </div>
+
+        <div class="giro-group">
+          <div class="giro-group-label">Servicios profesionales</div>
+          <div class="choices">
+            <button class="choice-btn" data-value="despacho">Despacho / Abogados</button>
+            <button class="choice-btn" data-value="consultoria">Consultoría de negocios</button>
+            <button class="choice-btn" data-value="fotografia">Fotografía</button>
+            <button class="choice-btn" data-value="viajes">Agencia de viajes</button>
+            <button class="choice-btn" data-value="inmobiliaria">Inmobiliaria</button>
+          </div>
+        </div>
+
+        <div class="giro-group">
+          <div class="giro-group-label">Comercio y retail</div>
+          <div class="choices">
+            <button class="choice-btn" data-value="tienda">Tienda / Comercio</button>
+            <button class="choice-btn" data-value="joyeria">Joyería</button>
+            <button class="choice-btn" data-value="calzado">Zapatos / Calzado</button>
+            <button class="choice-btn" data-value="ropa">Ropa / Boutique</button>
+            <button class="choice-btn" data-value="floreria">Florería</button>
+          </div>
+        </div>
+
+        <div class="giro-group">
+          <div class="giro-group-label">Oficios y reparación</div>
+          <div class="choices">
+            <button class="choice-btn" data-value="taller">Taller / Mecánica</button>
+            <button class="choice-btn" data-value="plomeria">Plomería / Servicios</button>
+            <button class="choice-btn" data-value="electricista">Electricista</button>
+            <button class="choice-btn" data-value="carpinteria">Carpintería</button>
+            <button class="choice-btn" data-value="decoracion">Decoración / Interiores</button>
+          </div>
+        </div>
+
+        <div class="giro-group">
+          <div class="giro-group-label">Cuidado y hogar</div>
+          <div class="choices">
+            <button class="choice-btn" data-value="salon">Salón / Barbería</button>
+            <button class="choice-btn" data-value="peluqueriacanina">Peluquería canina</button>
+            <button class="choice-btn" data-value="guarderia">Guardería / Daycare</button>
+            <button class="choice-btn" data-value="hotel">Hotel / Hospedaje</button>
+            <button class="choice-btn" data-value="escuela">Escuela / Academia</button>
+          </div>
+        </div>
+
+        <div class="giro-group">
+          <div class="choices">
+            <button class="choice-btn" data-value="otro">Otro</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="results" id="results">
+
+      <div class="section-label">Escaneando su categoría en Morelia</div>
+
+      <div class="radar-wrap">
+        <div class="radar-scan-label" id="scanLabel">Escaneando...</div>
+        <svg id="radarSvg" width="240" height="240" viewBox="0 0 200 200">
+          <circle class="ring" cx="100" cy="100" r="30"/>
+          <circle class="ring" cx="100" cy="100" r="60"/>
+          <circle class="ring" cx="100" cy="100" r="90"/>
+          <line class="crosshair" x1="10" y1="100" x2="190" y2="100"/>
+          <line class="crosshair" x1="100" y1="10" x2="100" y2="190"/>
+
+          <g class="sweep-group" id="sweepGroup">
+            <defs>
+              <linearGradient id="sweepGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#f4dd8c" stop-opacity="0"/>
+                <stop offset="100%" stop-color="#f4dd8c" stop-opacity="0.35"/>
+              </linearGradient>
+            </defs>
+            <path d="M 100 100 L 100 10 A 90 90 0 0 1 121 12 Z" fill="url(#sweepGrad)"/>
+            <line x1="100" y1="100" x2="100" y2="10" stroke="#f4dd8c" stroke-width="1" opacity="0.6"/>
+          </g>
+
+          <g id="dotsGroup"></g>
+          <g id="pulseGroup"></g>
+
+          <circle cx="100" cy="100" r="2.5" fill="#d4af37"/>
+        </svg>
+      </div>
+
+      <div class="legend">
+        <div class="legend-item"><span class="legend-dot gold"></span> Con presencia digital fuerte</div>
+        <div class="legend-item"><span class="legend-dot empty"></span> Sin presencia digital fuerte</div>
+      </div>
+
+      <div class="map-caption">
+        Solo <strong id="pctDigital">0%</strong> de los negocios como el suyo ya tienen presencia digital fuerte.
+        El resto — probablemente incluido el suyo — sigue siendo territorio disponible.
+      </div>
+
+      <div class="section-label" style="margin-top:22px;">Tamaño de la oportunidad</div>
+      <div class="stat-row">
+        <div class="stat-box">
+          <div class="stat-label">Demanda digital mensual estimada</div>
+          <div class="stat-value" id="demandaTotal">$0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Sin reclamar cada mes</div>
+          <div class="stat-value" id="demandaSinReclamar">$0</div>
+        </div>
+      </div>
+
+      <div class="stat-note" id="statNote">
+        Incluye búsquedas en Google y Maps, más consultas a asistentes de IA (ChatGPT, Gemini y similares) —
+        cada vez más gente pregunta ahí antes de buscar en Google.
+      </div>
+
+      <div class="urgency">
+        Cada mes que pasa sin presencia digital fuerte, <strong>esa parte del mercado la están capturando
+        los competidores que ya se movieron.</strong> Quien construya presencia primero, se queda con la ventaja.
+      </div>
+
+      <div class="disclaimer">
+        Ilustración basada en patrones típicos de la categoría en zonas como Morelia — no es un listado
+        verificado de negocios reales ni proviene de una fuente de datos en vivo.
+      </div>
+
+    </div>
+  </div>
+
+<script>
+  const DATA = {
+    restaurante:      { digitalPct:14, busquedas:8500, ticket:250 },
+    pasteleria:       { digitalPct:7,  busquedas:5900, ticket:320 },
+    clinica:          { digitalPct:11, busquedas:5200, ticket:600 },
+    dentista:         { digitalPct:13, busquedas:4600, ticket:1100 },
+    veterinaria:      { digitalPct:12, busquedas:4100, ticket:550 },
+    farmacia:         { digitalPct:8,  busquedas:7300, ticket:280 },
+    gimnasio:         { digitalPct:10, busquedas:5400, ticket:650 },
+    estetica:         { digitalPct:11, busquedas:4900, ticket:600 },
+    despacho:         { digitalPct:9,  busquedas:3100, ticket:1200 },
+    consultoria:      { digitalPct:10, busquedas:1800, ticket:3500 },
+    fotografia:       { digitalPct:9,  busquedas:2800, ticket:2800 },
+    viajes:           { digitalPct:9,  busquedas:4700, ticket:2200 },
+    inmobiliaria:     { digitalPct:12, busquedas:7800, ticket:6000 },
+    tienda:           { digitalPct:6,  busquedas:9200, ticket:400 },
+    joyeria:          { digitalPct:8,  busquedas:2100, ticket:2200 },
+    calzado:          { digitalPct:6,  busquedas:3600, ticket:600 },
+    ropa:             { digitalPct:7,  busquedas:5100, ticket:550 },
+    floreria:         { digitalPct:5,  busquedas:2400, ticket:450 },
+    taller:           { digitalPct:7,  busquedas:4800, ticket:900 },
+    plomeria:         { digitalPct:4,  busquedas:3300, ticket:750 },
+    electricista:     { digitalPct:5,  busquedas:2900, ticket:800 },
+    carpinteria:      { digitalPct:6,  busquedas:1900, ticket:2500 },
+    decoracion:       { digitalPct:8,  busquedas:2200, ticket:3200 },
+    salon:            { digitalPct:9,  busquedas:6700, ticket:350 },
+    peluqueriacanina: { digitalPct:6,  busquedas:2600, ticket:280 },
+    guarderia:        { digitalPct:7,  busquedas:2000, ticket:1800 },
+    hotel:            { digitalPct:13, busquedas:6900, ticket:1400 },
+    escuela:          { digitalPct:11, busquedas:3800, ticket:1800 },
+    otro:             { digitalPct:8,  busquedas:5000, ticket:500 }
+  };
+
+  const CONVERSION_RATE = 0.03;
+  const IA_QUERY_BOOST = 0.22; // demanda adicional por consultas a asistentes de IA (ChatGPT, Gemini, etc.)
+  const SWEEP_DURATION = 3200; // ms, matches CSS animation duration
+
+  // 18 fixed radar positions (3 rings x 6 points), consistent layout every time
+  const POSITIONS = [];
+  const ringRadii = [30, 60, 90];
+  ringRadii.forEach((r, ringIdx) => {
+    const offset = ringIdx * 20; // stagger angles per ring
+    for(let i=0; i<6; i++){
+      const angle = (i * 60 + offset) % 360;
+      const rad = (angle - 90) * Math.PI / 180; // -90 so angle 0 = top, matches sweep start
+      POSITIONS.push({
+        angle: angle,
+        cx: 100 + r * Math.cos(rad),
+        cy: 100 + r * Math.sin(rad)
+      });
+    }
+  });
+
+  function fmt(n){ return '$' + Math.round(n).toLocaleString('es-MX'); }
+
+  function countUp(el, target, suffix, duration){
+    const start = 0;
+    const startTime = performance.now();
+    function tick(now){
+      const progress = Math.min((now - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const value = Math.round(start + (target - start) * eased);
+      el.textContent = fmt(value) + suffix;
+      if(progress < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function clearRadar(){
+    document.getElementById('dotsGroup').innerHTML = '';
+    document.getElementById('pulseGroup').innerHTML = '';
+  }
+
+  function runScan(pct){
+    clearRadar();
+    const dotsGroup = document.getElementById('dotsGroup');
+    const pulseGroup = document.getElementById('pulseGroup');
+
+    // Distribute gold dots evenly among the 18 positions
+    const total = POSITIONS.length;
+    const goldCount = Math.round(total * (pct/100));
+    const goldSet = new Set();
+    if(goldCount > 0){
+      const step = total / goldCount;
+      for(let i=0; i<goldCount; i++){
+        goldSet.add(Math.floor(i * step));
+      }
+    }
+
+    const scanLabel = document.getElementById('scanLabel');
+    scanLabel.classList.remove('show');
+    void scanLabel.offsetWidth;
+    scanLabel.classList.add('show');
+
+    // create all dots invisible first
+    const dotEls = POSITIONS.map((pos, idx) => {
+      const isGold = goldSet.has(idx);
+      const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      dot.setAttribute('cx', pos.cx);
+      dot.setAttribute('cy', pos.cy);
+      dot.setAttribute('r', isGold ? 3.2 : 3);
+      dot.setAttribute('class', 'biz-dot ' + (isGold ? 'gold' : 'empty'));
+      dot.style.opacity = '0';
+      dotsGroup.appendChild(dot);
+      return { el: dot, pos, isGold };
+    });
+
+    // reveal each dot timed to when the sweep line passes over it
+    dotEls.forEach(({el, pos, isGold}) => {
+      const delay = (pos.angle / 360) * SWEEP_DURATION;
+      setTimeout(() => {
+        el.style.opacity = '1';
+        // pulse ring on reveal
+        const pulse = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        pulse.setAttribute('cx', pos.cx);
+        pulse.setAttribute('cy', pos.cy);
+        pulse.setAttribute('r', '3');
+        pulse.setAttribute('class', 'pulse-ring');
+        pulse.style.stroke = isGold ? '#f4dd8c' : '#6b6852';
+        pulseGroup.appendChild(pulse);
+        requestAnimationFrame(() => pulse.classList.add('animate'));
+        setTimeout(() => pulse.remove(), 800);
+      }, delay);
+    });
+
+    setTimeout(() => {
+      document.getElementById('scanLabel').classList.remove('show');
+    }, SWEEP_DURATION + 100);
+  }
+
+  document.querySelectorAll('#giroChoices .choice-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#giroChoices .choice-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const data = DATA[btn.dataset.value];
+      const busquedasConIA = data.busquedas * (1 + IA_QUERY_BOOST);
+      const demandaTotal = busquedasConIA * CONVERSION_RATE * data.ticket;
+      const demandaSinReclamar = demandaTotal * (1 - data.digitalPct/100);
+
+      document.getElementById('results').classList.add('show');
+      document.getElementById('pctDigital').textContent = data.digitalPct + '%';
+
+      runScan(data.digitalPct);
+
+      setTimeout(() => {
+        countUp(document.getElementById('demandaTotal'), demandaTotal, ' MXN', 1000);
+        countUp(document.getElementById('demandaSinReclamar'), demandaSinReclamar, ' MXN', 1000);
+      }, SWEEP_DURATION * 0.4);
+
+      document.getElementById('results').scrollIntoView({ behavior:'smooth', block:'nearest' });
+    });
+  });
+</script>
+
+</body>
+</html>
+
+</body></html>
